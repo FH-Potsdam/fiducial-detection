@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Simple Websocket Example</title>
+    <style>
+      .bar {
+        position:fixed;
+        z-index:98;
+        width: 140px;
+      }
+
+      #garden{
+        left:630px;
+        background-color:rgb(255,0,0);
+      }
+
+      #nature{
+        left:803px;
+        background-color:rgb(0,255,0);
+      }
+
+      #water{
+        left:976px;
+        background-color:rgb(0,0,255);
+      }
+
+      #social{
+        left:1149px;
+        background-color:rgb(255,255,0);
+      }
+
+      #image {
+        background-image:url('assets/overlay.png');
+        position: fixed;
+        top:0;
+        left:0;
+        z-index:99;
+        width: 1920px;
+        height: 1080px;
+      }
+
+      body, html{
+        margin:0;
+        padding:0;
+        border:none;
+        overflow:hidden;
+        width:100%;
+        height:100vh;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="image"></div>
+    <div class="bar" id="garden"></div>
+    <div class="bar" id="nature"></div>
+    <div class="bar" id="social"></div>
+    <div class="bar" id="water"></div>
+    <script>
+      let ws;
+      const max = 5;
+
+      if ("WebSocket" in window){
+        websocket = true;
+      }else{
+        websocket = false;
+      }
+
+      function open_ws(msg){
+        if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1){
+          // websocket on same server with address /websocket
+          ws = new WebSocket("ws://localhost:8888/websocket");
+
+          ws.onopen = function(){
+            // Web Socket is connected, send data using send()
+            console.log("ws open");
+            if( msg.length != 0 ){
+              ws_send(msg);
+            }
+          };
+
+          ws.onmessage = function (evt){
+            var received_msg = evt.data;
+            msg = JSON.parse(evt.data)
+
+            if( msg.type == "update" ){
+              Object.keys(msg.data).forEach((c) => {
+                console.log(c, msg.data[c]);
+                const d = document.querySelector('#'+c);
+                d.style.height = (msg.data[c] / max * 760) + 'px';
+                d.style.top = (163 + 760 - (msg.data[c] / max * 760)) + 'px';
+              });
+            }
+          };
+
+          ws.onclose = function(){ 
+            // websocket is closed, re-open
+            console.log("Connection is closed... reopen");
+            var msg = { event: 'register', };
+            setTimeout( function(){ws_send(msg);}, 1000 );
+          };
+        }
+      }
+
+      function ws_send(msg){
+        if( websocket == true ){
+          if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1){
+            open_ws(msg);
+          }else{
+            ws.send( JSON.stringify(msg) );
+            console.log("ws_send sent");
+          }
+        }
+      }
+
+      var msg = { event: 'register', };
+      ws_send(msg);
+    </script>
+  </body>
+</html>
